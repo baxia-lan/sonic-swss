@@ -8,7 +8,12 @@ INCLUDES = -I $(top_srcdir)/lib \
            -I pbh \
            -I nhg
 
-SUBDIRS = p4orch/tests
+SUBDIRS =
+
+if BUILD_SKIP_TEST_ENABLED
+else
+SUBDIRS += p4orch/tests
+endif
 
 CFLAGS_SAI = -I /usr/include/sai
 
@@ -187,4 +192,3 @@ orchagent_SOURCES += $(top_srcdir)/lib/asan.cpp
 routeresync_SOURCES += $(top_srcdir)/lib/asan.cpp
 orchagent_restart_check_SOURCES += $(top_srcdir)/lib/asan.cpp
 endif
-

@@ -28,6 +28,7 @@ include /usr/share/dpkg/default.mk
 #	-DCMAKE_LIBRARY_PATH=$(DEB_HOST_MULTIARCH)
 
 configure_opts =
+SWSS_BUILD_JOBS ?= 2
 ifeq ($(ENABLE_ASAN), y)
 	configure_opts += --enable-asan
 endif
@@ -37,12 +38,19 @@ ifeq ($(ENABLE_GCOV), y)
 endif
 
 override_dh_auto_configure:
-	dh_auto_configure -- $(configure_opts)
+	autoreconf -fi
+	BUILD_SKIP_TEST=$(BUILD_SKIP_TEST) dh_auto_configure -- $(configure_opts)
+ifeq ($(BUILD_SKIP_TEST),y)
+	awk 'BEGIN{done=0} /^SUBDIRS[[:space:]]*=/ && !done { gsub(/(^|[[:space:]])tests([[:space:]]|$$)/, " "); gsub(/[[:space:]]+/, " "); sub(/[[:space:]]+$$/, ""); done=1 } { print }' Makefile > Makefile.tmp
+	mv Makefile.tmp Makefile
+	awk 'BEGIN{done=0} /^SUBDIRS[[:space:]]*=/ && !done { gsub(/(^|[[:space:]])p4orch\\/tests([[:space:]]|$$)/, " "); gsub(/[[:space:]]+/, " "); sub(/[[:space:]]+$$/, ""); done=1 } { print }' orchagent/Makefile > orchagent/Makefile.tmp
+	mv orchagent/Makefile.tmp orchagent/Makefile
+endif
 
 override_dh_auto_build:
-	dh_auto_build
+	env MAKEFLAGS= $(MAKE) -j$(SWSS_BUILD_JOBS)
 	# Build and test countersyncd Rust project
-	cargo build --release --locked
+	cargo build --release -j $(SWSS_BUILD_JOBS)
 
 override_dh_auto_install:
 	dh_auto_install --destdir=debian/swss

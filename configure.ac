@@ -10,6 +10,9 @@ AC_PROG_CXX
 AC_PROG_LIBTOOL
 AC_HEADER_STDC
 
+AC_ARG_VAR([BUILD_SKIP_TEST], [Skip building unit test directories when set to y])
+AM_CONDITIONAL([BUILD_SKIP_TEST_ENABLED], [test "x$BUILD_SKIP_TEST" = "xy"])
+
 AC_CHECK_LIB([hiredis], [redisConnect],,
     AC_MSG_ERROR([libhiredis is not installed.]))
 
