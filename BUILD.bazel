@@ -19,7 +19,7 @@ genrule(
     ) + [
         "//src/sonic-sairedis:sairedis_dev",
         "//src/sonic-sairedis:saimetadata_dev",
-        "//src/sonic-swss-common:swss_common_dev",
+        "//build/deb/sonic-swss-common:swss_common_dev",
         "//src/sonic-stp:stp",
         "//src/sonic-dash-api:sonic_dash_api",
     ],
