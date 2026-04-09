@@ -29,12 +29,12 @@ set -euo pipefail
 # Find src dir from first source file
 FIRST_SRC=$$(echo $(SRCS) | awk '{print $$1}')
 SRC_DIR=$$(cd $$(dirname "$$FIRST_SRC") && while [ ! -f debian/changelog ]; do cd ..; done && pwd)
-OUT_DIR=$$(cd $$(dirname $(OUTS)) && pwd)
+STAGING=$$(mktemp -d)
 DEPS_DIR=$$(mktemp -d)
 find . -path './bazel-out/*/bin/src/*' -name '*.deb' -size +0 2>/dev/null | while IFS= read -r f; do cp "$$f" "$$DEPS_DIR/" 2>/dev/null; done || true
 echo "Dep debs: $$(ls $$DEPS_DIR/*.deb 2>/dev/null | wc -l)"
 docker run --rm --platform linux/amd64 \
-  -v "$$SRC_DIR:/src:ro" -v "$$OUT_DIR:/output" -v "$$DEPS_DIR:/deps:ro" \
+  -v "$$SRC_DIR:/src:ro" -v "$$STAGING:/output" -v "$$DEPS_DIR:/deps:ro" \
   -e DEBIAN_FRONTEND=noninteractive \
   """ + _BUILD_IMAGE + """ \
   bash -o pipefail -c '
@@ -67,12 +67,18 @@ docker run --rm --platform linux/amd64 \
     ls -lh /tmp/*.deb 2>/dev/null | head -5
     cp /tmp/*.deb /output/ 2>/dev/null || true
   '
+# Copy from staging to Bazel output paths
 for out in $(OUTS); do
-  if [ ! -s "$$out" ]; then
-    echo "FAIL: $$out is empty"
+  base=$$(basename "$$out")
+  if [ -f "$$STAGING/$$base" ]; then
+    cp "$$STAGING/$$base" "$$out"
+  else
+    echo "FAIL: $$base not in staging"
+    ls "$$STAGING"/*.deb 2>/dev/null || true
     exit 1
   fi
 done
+rm -rf "$$STAGING" "$$DEPS_DIR"
 """,
     tags = ["no-cache", "requires-docker", "no-sandbox"],
     visibility = ["//visibility:public"],
