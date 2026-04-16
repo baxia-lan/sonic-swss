@@ -26,11 +26,15 @@ genrule(
     outs = ["swss_1.0.0_amd64.deb"],
     cmd = """
 set -euo pipefail
+# Temp dirs must be under the Bazel execroot (inside /workspace on Cloud
+# Build) so `docker run -v` can see them from the host docker daemon.
+# mktemp in /tmp is not shared across the DinD boundary.
+mkdir -p "$$PWD/.bazel-tmp"
 # Find src dir from first source file
 FIRST_SRC=$$(echo $(SRCS) | awk '{print $$1}')
 SRC_DIR=$$(cd $$(dirname "$$FIRST_SRC") && while [ ! -f debian/changelog ]; do cd ..; done && pwd)
-STAGING=$$(mktemp -d)
-DEPS_DIR=$$(mktemp -d)
+STAGING=$$(mktemp -d -p "$$PWD/.bazel-tmp")
+DEPS_DIR=$$(mktemp -d -p "$$PWD/.bazel-tmp")
 # Copy dep debs using Bazel-provided locations
 for f in $(locations //build/deb/sonic-swss-common:swss_common_dev) \
          $(locations //src/sonic-sairedis:sairedis_dev) \
